@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verify you are human</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f0f2f5;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.captcha-box {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+  padding: 40px;
+  max-width: 480px;
+  width: 90%;
+  text-align: center;
+  position: relative;
+  transition: all 0.3s;
+}
+h2 { margin-bottom: 8px; color: #1a1a1a; font-size: 20px; }
+.subtitle { color: #666; font-size: 14px; margin-bottom: 24px; }
+.stage-indicator { display: flex; gap: 6px; justify-content: center; margin-bottom: 24px; }
+.dot {
+  width: 10px; height: 10px; border-radius: 50%; background: #ddd;
+  transition: background 0.3s;
+}
+.dot.active { background: #4f46e5; }
+.dot.done { background: #22c55e; }
+.hidden { display: none !important; }
+
+/* Checkbox stage */
+.checkbox-wrapper {
+  display: flex; align-items: center; gap: 10px;
+  background: #f8f9fa; border: 1px solid #e0e0e0;
+  border-radius: 8px; padding: 16px;
+  cursor: pointer; user-select: none; position: relative;
+  justify-content: center; transition: all 0.1s;
+  margin-bottom: 20px;
+}
+.checkbox-wrapper:active { opacity: 0.8; }
+.checkbox-label { font-size: 15px; color: #333; }
+
+/* Grid stage */
+.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 16px 0; }
+.grid-cell {
+  aspect-ratio: 1; border-radius: 6px; cursor: pointer;
+  border: 2px solid #e0e0e0; overflow: hidden;
+  background: #f8f9fa; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+}
+.grid-cell:hover { border-color: #999; }
+.grid-cell.selected { border-color: #4f46e5; background: #eef2ff; }
+
+/* Button */
+.btn {
+  background: #4f46e5; color: white; border: none;
+  padding: 14px 32px; border-radius: 8px; font-size: 16px;
+  cursor: pointer; transition: all 0.2s; width: 100%;
+}
+.btn:hover { background: #4338ca; }
+.btn:disabled { background: #ccc; cursor: not-allowed; }
+
+/* Spinning */
+.spinner {
+  width: 24px; height: 24px; border: 3px solid #e0e0e0;
+  border-top-color: #4f46e5; border-radius: 50%;
+  animation: spin 0.8s linear infinite; margin: 20px auto;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Slider stage */
+.slider-track {
+  width: 100%; height: 40px; background: #f0f0f0;
+  border-radius: 8px; position: relative; cursor: pointer;
+  margin: 16px 0; overflow: hidden; border: 1px solid #ddd;
+}
+.slider-fill {
+  height: 100%; background: #4f46e5; width: 0%;
+  border-radius: 8px; transition: width 0.05s;
+}
+.slider-thumb {
+  position: absolute; top: -4px; width: 28px; height: 48px;
+  background: white; border: 2px solid #4f46e5;
+  border-radius: 8px; cursor: grab; box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transform: translateX(-50%);
+}
+
+/* Audio stage */
+.audio-play {
+  background: none; border: 2px solid #e0e0e0;
+  width: 60px; height: 60px; border-radius: 50%;
+  font-size: 24px; cursor: pointer; margin: 16px auto;
+  transition: all 0.2s; display: flex;
+  align-items: center; justify-content: center;
+}
+.audio-play:hover { border-color: #4f46e5; }
+
+/* Text input */
+.text-input {
+  width: 100%; padding: 12px 16px; border: 1px solid #ddd;
+  border-radius: 8px; font-size: 16px; margin: 12px 0;
+  outline: none;
+}
+.text-input:focus { border-color: #4f46e5; }
+
+/* Instructions */
+.instr { font-size: 15px; color: #555; margin-bottom: 16px; line-height: 1.5; }
+
+/* Checkbox dodge area */
+.dodge-zone {
+  position: relative; width: 100%; overflow: hidden;
+}
+
+/* Math */
+.math-expr { font-size: 32px; font-weight: bold; color: #1a1a1a; margin: 16px 0; }
+
+/* Final */
+.prank-reveal { font-size: 48px; margin-bottom: 16px; }
+.prank-title { font-size: 24px; font-weight: bold; color: #dc2626; margin-bottom: 12px; }
+.prank-text { color: #555; font-size: 15px; line-height: 1.6; }
+
+/* Loading bar for verify */
+.loading-bar {
+  width: 100%; height: 4px; background: #e0e0e0;
+  border-radius: 2px; margin: 16px 0; overflow: hidden;
+}
+.loading-bar-fill {
+  height: 100%; background: #4f46e5; width: 0%;
+  border-radius: 2px;
+}
+</style>
+</head>
+<body>
+<div class="captcha-box" id="app">
+  <div id="stage-indicator" class="stage-indicator">
+    <div class="dot active" data-index="0"></div>
+    <div class="dot" data-index="1"></div>
+    <div class="dot" data-index="2"></div>
+    <div class="dot" data-index="3"></div>
+    <div class="dot" data-index="4"></div>
+    <div class="dot" data-index="5"></div>
+  </div>
+
+  <div id="stage-content"></div>
+</div>
+
+<script>
+const STAGES = [
+  { id: 'checkbox', label: 'Checkbox' },
+  { id: 'grid', label: 'Grid' },
+  { id: 'slider', label: 'Slider' },
+  { id: 'audio', label: 'Audio' },
+  { id: 'math', label: 'Math' },
+  { id: 'final', label: 'Done' },
+];
+
+let currentStage = 0;
+let checkboxDodgeCount = 0;
+let gridSelected = [];
+let sliderPos = 0;
+let audioPlayed = false;
+
+function render() {
+  const container = document.getElementById('stage-content');
+  const dots = document.querySelectorAll('.dot');
+  dots.forEach((d, i) => {
+    d.classList.toggle('active', i === currentStage);
+    d.classList.toggle('done', i < currentStage);
+  });
+
+  switch (STAGES[currentStage].id) {
+    case 'checkbox': renderCheckbox(container); break;
+    case 'grid': renderGrid(container); break;
+    case 'slider': renderSlider(container); break;
+    case 'audio': renderAudio(container); break;
+    case 'math': renderMath(container); break;
+    case 'final': renderFinal(container); break;
+  }
+}
+
+function renderCheckbox(container) {
+  container.innerHTML = `
+    <h2>Security Check</h2>
+    <p class="subtitle">Please verify you are human</p>
+    <div class="dodge-zone">
+      <div class="checkbox-wrapper" id="dodge-checkbox">
+        <div class="fake-checkbox" style="width:20px;height:20px;border:2px solid #999;border-radius:4px;background:white;flex-shrink:0;"></div>
+        <span class="checkbox-label">I'm not a robot</span>
+      </div>
+    </div>
+    <p style="font-size:12px;color:#999;margin-top:8px;">
+      ${checkboxDodgeCount > 0 ? `Almost... (${Math.min(checkboxDodgeCount, 10)}/10)` : ''}
+    </p>
+  `;
+
+  const dodge = document.getElementById('dodge-checkbox');
+  let escaped = false;
+
+  dodge.addEventListener('mouseenter', () => {
+    if (checkboxDodgeCount >= 10) return;
+    const box = dodge.parentElement.getBoundingClientRect();
+    const maxX = box.width - dodge.offsetWidth - 10;
+    const maxY = box.height - dodge.offsetHeight - 10;
+    const randX = Math.random() * maxX;
+    const randY = Math.random() * maxY;
+    dodge.style.position = 'absolute';
+    dodge.style.left = randX + 'px';
+    dodge.style.top = randY + 'px';
+    dodge.style.transition = 'left 0.08s, top 0.08s';
+    checkboxDodgeCount++;
+    escaped = false;
+    render();
+  });
+
+  dodge.addEventListener('click', () => {
+    if (checkboxDodgeCount >= 10 && !escaped) {
+      escaped = true;
+      const check = dodge.querySelector('.fake-checkbox');
+      check.style.background = '#4f46e5';
+      check.style.borderColor = '#4f46e5';
+      check.innerHTML = '✓';
+      check.style.color = 'white';
+      check.style.display = 'flex';
+      check.style.alignItems = 'center';
+      check.style.justifyContent = 'center';
+      check.style.fontSize = '14px';
+      dodge.style.cursor = 'default';
+      setTimeout(() => advance(), 800);
+    }
+  });
+}
+
+function renderGrid(container) {
+  const images = ['🚗', '🚌', '🚲', '🚕', '🚙', '🚐', '🏍️', '🛵', '🚚', '🚛', '🚜', '🏎️', '🚓', '🚑', '🚒', '🛴'];
+  const target = ['bus', 'traffic light', 'crosswalk', 'fire hydrant'];
+
+  gridSelected = [];
+  container.innerHTML = `
+    <h2>Select all squares with <strong>${target[currentStage % target.length]}s</strong></h2>
+    <p class="subtitle">If there are none, click Verify anyway 😊</p>
+    <div class="grid" id="grid">
+      ${images.map((img, i) => `<div class="grid-cell" data-index="${i}">${img}</div>`).join('')}
+    </div>
+    <button class="btn" id="grid-verify">Verify</button>
+  `;
+
+  document.querySelectorAll('.grid-cell').forEach(el => {
+    el.addEventListener('click', () => {
+      el.classList.toggle('selected');
+    });
+  });
+
+  document.getElementById('grid-verify').addEventListener('click', () => {
+    let tries = parseInt(sessionStorage.getItem('gridTries') || '0');
+    tries++;
+    sessionStorage.setItem('gridTries', String(tries));
+
+    if (tries >= 3) {
+      showFakeLoad(container, () => {
+        sessionStorage.removeItem('gridTries');
+        advance();
+      });
+    } else {
+      const msgs = [
+        "Hmm, we couldn't detect any buses. Try again.",
+        "You missed some. Please try harder.",
+        "Are you sure you selected all the traffic lights?",
+      ];
+      showToast(msgs[tries - 1] || "Incorrect. Try again.");
+    }
+  });
+}
+
+function renderSlider(container) {
+  sliderPos = 0;
+  container.innerHTML = `
+    <h2>Slide to verify</h2>
+    <p class="subtitle">Drag the slider to the end to confirm</p>
+    <div class="slider-track" id="slider-track">
+      <div class="slider-fill" id="slider-fill"></div>
+      <div class="slider-thumb" id="slider-thumb"></div>
+    </div>
+    <p id="slider-hint" style="font-size:12px;color:#999;margin-top:8px;">Drag the slider to the right</p>
+  `;
+
+  const track = document.getElementById('slider-track');
+  const fill = document.getElementById('slider-fill');
+  const thumb = document.getElementById('slider-thumb');
+  const hint = document.getElementById('slider-hint');
+  let dragging = false;
+  let resetTimeout = null;
+  let lastPct = 0;
+
+  const onMove = (clientX) => {
+    const rect = track.getBoundingClientRect();
+    let pct = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+    sliderPos = pct;
+    fill.style.width = pct + '%';
+    thumb.style.left = pct + '%';
+
+    // If they get close to the end, push back!
+    if (pct > 85 && pct < 98) {
+      sliderPos = 65 + Math.random() * 10;
+      fill.style.width = sliderPos + '%';
+      thumb.style.left = sliderPos + '%';
+      hint.textContent = "Almost! Keep going...";
+    } else if (pct >= 98) {
+      // They actually reached the end somehow
+      hint.textContent = "Verifying...";
+      showFakeLoad(container, () => {
+        hint.textContent = "One more check...";
+        // Reset and make them do it again
+        setTimeout(() => {
+          sliderPos = 0;
+          fill.style.width = '0%';
+          thumb.style.left = '0%';
+          hint.textContent = "Security re-check required! Slide again.";
+        }, 500);
+        // After 3 reaches, actually advance
+        let reaches = parseInt(sessionStorage.getItem('sliderReaches') || '0');
+        reaches++;
+        sessionStorage.setItem('sliderReaches', String(reaches));
+        if (reaches >= 3) {
+          sessionStorage.removeItem('sliderReaches');
+          advance();
+        }
+      });
+    } else {
+      hint.textContent = `Dragging... ${Math.round(sliderPos)}%`;
+    }
+  };
+
+  thumb.addEventListener('mousedown', (e) => { dragging = true; e.preventDefault(); });
+  document.addEventListener('mousemove', (e) => { if (dragging) onMove(e.clientX); });
+  document.addEventListener('mouseup', () => { dragging = false; });
+
+  // Touch support
+  thumb.addEventListener('touchstart', (e) => { dragging = true; e.preventDefault(); });
+  document.addEventListener('touchmove', (e) => {
+    if (dragging) onMove(e.touches[0].clientX);
+  });
+  document.addEventListener('touchend', () => { dragging = false; });
+}
+
+function renderAudio(container) {
+  audioPlayed = false;
+  container.innerHTML = `
+    <h2>Audio Verification</h2>
+    <p class="subtitle">Listen and type what you hear</p>
+    <button class="audio-play" id="audio-play-btn">🔊</button>
+    <p style="font-size:13px;color:#999;">Click the speaker to play audio</p>
+    <input class="text-input hidden" id="audio-input" placeholder="Type what you heard...">
+    <button class="btn hidden" id="audio-verify">Verify</button>
+  `;
+
+  const playBtn = document.getElementById('audio-play-btn');
+  const input = document.getElementById('audio-input');
+  const verify = document.getElementById('audio-verify');
+
+  const phrases = [
+    { text: "Mango chicken trombone", audio: "..." },
+    { text: "Purple giraffe elevator", audio: "..." },
+  ];
+  const pick = phrases[Math.floor(Math.random() * phrases.length)];
+  sessionStorage.setItem('audioAnswer', pick.text.toLowerCase());
+
+  playBtn.addEventListener('click', () => {
+    // Play a beep sequence that's impossible to understand
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const playNote = (freq, start, dur) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'sawtooth';
+      gain.gain.setValueAtTime(0.3, start);
+      gain.gain.exponentialRampToValueAtTime(0.01, start + dur);
+      osc.start(start);
+      osc.stop(start + dur);
+    };
+
+    // Play garbled nonsense audio
+    playBtn.textContent = '🔊...';
+    playBtn.disabled = true;
+    setTimeout(() => { playNote(220, 0, 0.3); }, 100);
+    setTimeout(() => { playNote(880, 0.3, 0.1); }, 400);
+    setTimeout(() => { playNote(440, 0.5, 0.3); }, 600);
+    setTimeout(() => { playNote(660, 0.8, 0.4); }, 900);
+    setTimeout(() => { playNote(330, 1.2, 0.3); }, 1300);
+    setTimeout(() => {
+      playBtn.textContent = '🔊';
+      playBtn.disabled = false;
+      audioPlayed = true;
+      input.classList.remove('hidden');
+      verify.classList.remove('hidden');
+    }, 1800);
+  });
+
+  verify.addEventListener('click', () => {
+    const answer = sessionStorage.getItem('audioAnswer');
+    const userAnswer = input.value.toLowerCase().trim();
+
+    if (userAnswer === answer) {
+      // They somehow got it right - advance anyway after messing with them
+      showFakeLoad(container, () => {
+        showToast("Correct... but let's double-check.");
+        setTimeout(() => {
+          input.value = '';
+          const pick2 = phrases[Math.floor(Math.random() * phrases.length)];
+          sessionStorage.setItem('audioAnswer', pick2.text.toLowerCase());
+        }, 500);
+        let corrects = parseInt(sessionStorage.getItem('audioCorrects') || '0');
+        corrects++;
+        sessionStorage.setItem('audioCorrects', String(corrects));
+        if (corrects >= 2) {
+          sessionStorage.removeItem('audioCorrects');
+          sessionStorage.removeItem('audioAnswer');
+          advance();
+        }
+      });
+    } else {
+      showToast("Incorrect. Listen again carefully.");
+    }
+  });
+}
+
+function renderMath(container) {
+  container.innerHTML = `
+    <h2>Math Verification</h2>
+    <p class="subtitle">Solve this simple math problem</p>
+    <div class="math-expr" id="math-expr"></div>
+    <input class="text-input" id="math-input" type="number" placeholder="Enter your answer" step="any">
+    <button class="btn" id="math-verify">Submit</button>
+  `;
+
+  const generate = () => {
+    const a = Math.floor(Math.random() * 100);
+    const b = Math.floor(Math.random() * 10);
+    const ops = ['+', '-', '×', '÷'];
+    const op = ops[Math.floor(Math.random() * ops.length)];
+    let expr, answer;
+    switch (op) {
+      case '+': expr = `${a} + ${b}`; answer = a + b; break;
+      case '-': expr = `${a} - ${b}`; answer = a - b; break;
+      case '×': expr = `${a} × ${b}`; answer = a * b; break;
+      case '÷':
+        const divA = a > 0 ? a : 1;
+        const divB = b > 0 ? b : 1;
+        expr = `${divA * divB} ÷ ${divB}`; answer = divA; break;
+    }
+    return { expr, answer };
+  };
+
+  let current = generate();
+  document.getElementById('math-expr').textContent = current.expr;
+
+  document.getElementById('math-verify').addEventListener('click', () => {
+    const input = document.getElementById('math-input');
+    const val = parseFloat(input.value);
+    const correct = Math.abs(val - current.answer) < 0.01;
+
+    if (correct) {
+      showFakeLoad(container, () => {
+        // Generate a new harder problem
+        current = {
+          expr: `∫(2x³ + 3x² - 5x + 1) dx from 0 to ${Math.floor(Math.random() * 10) + 1}`,
+          answer: Math.random() * 10000,
+        };
+        document.getElementById('math-expr').textContent = current.expr;
+        input.value = '';
+        input.placeholder = "🚩 Enter the definite integral";
+        showToast("Now try this one.");
+      });
+      let solved = parseInt(sessionStorage.getItem('mathSolved') || '0');
+      solved++;
+      sessionStorage.setItem('mathSolved', String(solved));
+      if (solved >= 3) {
+        sessionStorage.removeItem('mathSolved');
+        advance();
+      }
+    } else {
+      showToast("Wrong answer. Try again.");
+    }
+  });
+}
+
+function renderFinal(container) {
+  container.innerHTML = `
+    <div class="prank-reveal">🎉</div>
+    <div class="prank-title">YOU'VE BEEN PRANKED!</div>
+    <div class="prank-text">
+      These CAPTCHAs were impossible on purpose.<br>
+      There were no buses, the checkbox runs away,<br>
+      the slider pushes back, and that math problem<br>
+      was never solvable.
+    </div>
+    <br>
+    <button class="btn" onclick="resetAll()">Try again? 😈</button>
+  `;
+}
+
+function showFakeLoad(container, callback) {
+  const bar = document.createElement('div');
+  bar.className = 'loading-bar';
+  bar.innerHTML = '<div class="loading-bar-fill" id="fake-load-fill"></div>';
+  container.appendChild(bar);
+
+  const fill = document.getElementById('fake-load-fill');
+  let width = 0;
+  const interval = setInterval(() => {
+    width += Math.random() * 15 + 2;
+    if (width >= 100) {
+      width = 100;
+      clearInterval(interval);
+      fill.style.width = '100%';
+      setTimeout(() => {
+        bar.remove();
+        callback();
+      }, 300);
+    }
+    fill.style.width = Math.min(width, 99) + '%';
+  }, 200);
+}
+
+function showToast(msg) {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = msg;
+  Object.assign(toast.style, {
+    position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)',
+    background: '#dc2626', color: 'white', padding: '12px 24px', borderRadius: '8px',
+    fontSize: '14px', boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+    zIndex: '1000', transition: 'opacity 0.3s',
+  });
+  document.body.appendChild(toast);
+  setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 2500);
+}
+
+function advance() {
+  currentStage++;
+  if (currentStage >= STAGES.length) currentStage = STAGES.length - 1;
+  render();
+}
+
+function resetAll() {
+  currentStage = 0;
+  checkboxDodgeCount = 0;
+  gridSelected = [];
+  sliderPos = 0;
+  audioPlayed = false;
+  sessionStorage.clear();
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
