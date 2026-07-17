@@ -4,549 +4,1123 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Verify you are human</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #f0f2f5;
+  font-family: 'Roboto', Arial, sans-serif;
+  background: #202124;
   min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-direction: column;
+  gap: 20px;
 }
-.captcha-box {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 20px rgba(0,0,0,0.1);
-  padding: 40px;
-  max-width: 480px;
-  width: 90%;
-  text-align: center;
-  position: relative;
-  transition: all 0.3s;
-}
-h2 { margin-bottom: 8px; color: #1a1a1a; font-size: 20px; }
-.subtitle { color: #666; font-size: 14px; margin-bottom: 24px; }
-.stage-indicator { display: flex; gap: 6px; justify-content: center; margin-bottom: 24px; }
-.dot {
-  width: 10px; height: 10px; border-radius: 50%; background: #ddd;
-  transition: background 0.3s;
-}
-.dot.active { background: #4f46e5; }
-.dot.done { background: #22c55e; }
-.hidden { display: none !important; }
 
-/* Checkbox stage */
-.checkbox-wrapper {
-  display: flex; align-items: center; gap: 10px;
-  background: #f8f9fa; border: 1px solid #e0e0e0;
-  border-radius: 8px; padding: 16px;
-  cursor: pointer; user-select: none; position: relative;
-  justify-content: center; transition: all 0.1s;
+.rc-anchor {
+  background: #fff;
+  border: 1px solid #d3d3d3;
+  border-radius: 3px;
+  box-shadow: 0 0 4px 1px rgba(0,0,0,0.08);
+  width: 302px;
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+}
+.rc-anchor-light { background: #f9f9f9; }
+.rc-anchor-normal { height: 78px; }
+.rc-anchor-compact { height: 78px; }
+.rc-anchor-content {
+  display: flex;
+  align-items: center;
+  padding: 14px 14px 14px 10px;
+  height: 74px;
+  background: #fff;
+}
+.rc-checkbox {
+  width: 28px;
+  height: 28px;
+  border: 2px solid #c1c1c1;
+  border-radius: 2px;
+  background: #fff;
+  flex-shrink: 0;
+  cursor: pointer;
+  position: relative;
+  transition: none;
+}
+.rc-checkbox:focus { border-color: #2d7ac7; box-shadow: 0 0 0 3px rgba(45, 122, 199, 0.3); }
+.rc-checkbox-checked {
+  background: #2d7ac7;
+  border-color: #2d7ac7;
+}
+.rc-checkbox-checked::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 3px;
+  width: 9px;
+  height: 14px;
+  border: solid #fff;
+  border-width: 0 3px 3px 0;
+  transform: rotate(45deg);
+}
+.rc-label {
+  font-size: 14px;
+  color: #000;
+  margin-left: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+.rc-logo {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.rc-logo-img {
+  width: 40px;
+  height: 40px;
+  position: relative;
+}
+.rc-logo-img::before {
+  content: 're';
+  position: absolute;
+  top: 10px;
+  left: 6px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1565c0;
+  font-style: italic;
+  letter-spacing: -1px;
+}
+.rc-logo-img::after {
+  content: 'CAPTCHA';
+  position: absolute;
+  bottom: 6px;
+  left: 2px;
+  font-size: 8px;
+  font-weight: 700;
+  color: #666;
+  letter-spacing: 0.5px;
+}
+.rc-logo-text {
+  font-size: 8px;
+  color: #666;
+  text-align: center;
+  line-height: 1.2;
+}
+.rc-anchor-footer {
+  border-top: 1px solid #d3d3d3;
+  padding: 6px 14px;
+  background: #f9f9f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.rc-footer-links { display: flex; gap: 12px; }
+.rc-footer-links a {
+  font-size: 10px;
+  color: #666;
+  text-decoration: none;
+}
+.rc-footer-links a:hover { color: #333; }
+
+/* Challenge overlay */
+.challenge-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+.challenge-box {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 5px 30px rgba(0,0,0,0.3);
+  width: 460px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: fadeIn 0.2s ease;
+}
+@keyframes fadeIn { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
+.challenge-header {
+  padding: 20px 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.challenge-header-icon {
+  width: 44px; height: 44px;
+  background: #1565c0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 24px;
+  font-style: italic;
+  flex-shrink: 0;
+}
+.challenge-header-text { flex: 1; }
+.challenge-header-text h2 {
+  font-size: 16px; font-weight: 500; color: #222;
+}
+.challenge-header-text p {
+  font-size: 13px; color: #666; margin-top: 2px;
+}
+.challenge-body {
+  padding: 16px 20px;
+}
+.challenge-prompt {
+  font-size: 15px;
+  color: #222;
+  margin-bottom: 14px;
+  font-weight: 500;
+}
+.challenge-prompt strong { color: #1565c0; }
+
+.challenge-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.challenge-grid-cell {
+  aspect-ratio: 1;
+  border: 2px solid #e0e0e0;
+  border-radius: 4px;
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 52px;
+  background: #fafafa;
+  transition: border-color 0.1s;
+  user-select: none;
+}
+.challenge-grid-cell:hover { border-color: #bdbdbd; }
+.challenge-grid-cell.selected {
+  border-color: #1565c0;
+  background: #e3f2fd;
+}
+.challenge-grid-cell img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.challenge-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 0 20px;
+}
+.challenge-btn {
+  padding: 10px 24px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s;
+  font-family: 'Roboto', Arial, sans-serif;
+}
+.challenge-btn-skip {
+  background: transparent;
+  color: #666;
+  margin-right: auto;
+}
+.challenge-btn-skip:hover { background: #f5f5f5; }
+.challenge-btn-verify {
+  background: #1565c0;
+  color: #fff;
+}
+.challenge-btn-verify:hover { background: #0d47a1; }
+.challenge-btn-verify:disabled {
+  background: #bdbdbd;
+  cursor: default;
+}
+.challenge-btn-verify.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.challenge-footer {
+  border-top: 1px solid #e0e0e0;
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.challenge-footer a {
+  font-size: 11px;
+  color: #888;
+  text-decoration: none;
+}
+.challenge-footer a:hover { color: #555; }
+.challenge-footer-icons { display: flex; gap: 8px; }
+.challenge-footer-icons span {
+  font-size: 18px;
+  cursor: pointer;
+  opacity: 0.5;
+}
+.challenge-footer-icons span:hover { opacity: 0.8; }
+
+/* reCAPTCHA v3 badge style */
+.recaptcha-badge {
+  position: fixed;
+  bottom: 14px;
+  right: 14px;
+  background: #fff;
+  border: 1px solid #d3d3d3;
+  border-radius: 2px;
+  box-shadow: 0 0 4px rgba(0,0,0,0.08);
+  padding: 4px 8px;
+  font-size: 10px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 999;
+}
+.recaptcha-badge::before {
+  content: 're';
+  font-size: 14px;
+  font-weight: 700;
+  font-style: italic;
+  color: #1565c0;
+}
+
+/* Verification spinner (reCAPTCHA v3 style) */
+.verify-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+.verify-spinner-ring {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e0e0e0;
+  border-top-color: #1565c0;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
   margin-bottom: 20px;
 }
-.checkbox-wrapper:active { opacity: 0.8; }
-.checkbox-label { font-size: 15px; color: #333; }
-
-/* Grid stage */
-.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 16px 0; }
-.grid-cell {
-  aspect-ratio: 1; border-radius: 6px; cursor: pointer;
-  border: 2px solid #e0e0e0; overflow: hidden;
-  background: #f8f9fa; transition: all 0.15s;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 28px;
-}
-.grid-cell:hover { border-color: #999; }
-.grid-cell.selected { border-color: #4f46e5; background: #eef2ff; }
-
-/* Button */
-.btn {
-  background: #4f46e5; color: white; border: none;
-  padding: 14px 32px; border-radius: 8px; font-size: 16px;
-  cursor: pointer; transition: all 0.2s; width: 100%;
-}
-.btn:hover { background: #4338ca; }
-.btn:disabled { background: #ccc; cursor: not-allowed; }
-
-/* Spinning */
-.spinner {
-  width: 24px; height: 24px; border: 3px solid #e0e0e0;
-  border-top-color: #4f46e5; border-radius: 50%;
-  animation: spin 0.8s linear infinite; margin: 20px auto;
-}
 @keyframes spin { to { transform: rotate(360deg); } }
-
-/* Slider stage */
-.slider-track {
-  width: 100%; height: 40px; background: #f0f0f0;
-  border-radius: 8px; position: relative; cursor: pointer;
-  margin: 16px 0; overflow: hidden; border: 1px solid #ddd;
+.verify-spinner h3 {
+  font-size: 16px; font-weight: 500; color: #333; margin-bottom: 8px;
 }
-.slider-fill {
-  height: 100%; background: #4f46e5; width: 0%;
-  border-radius: 8px; transition: width 0.05s;
-}
-.slider-thumb {
-  position: absolute; top: -4px; width: 28px; height: 48px;
-  background: white; border: 2px solid #4f46e5;
-  border-radius: 8px; cursor: grab; box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-  transform: translateX(-50%);
+.verify-spinner p {
+  font-size: 13px; color: #888;
 }
 
-/* Audio stage */
-.audio-play {
-  background: none; border: 2px solid #e0e0e0;
-  width: 60px; height: 60px; border-radius: 50%;
-  font-size: 24px; cursor: pointer; margin: 16px auto;
-  transition: all 0.2s; display: flex;
-  align-items: center; justify-content: center;
+/* After verify loading */
+.verify-progress {
+  padding: 30px 20px;
+  text-align: center;
 }
-.audio-play:hover { border-color: #4f46e5; }
-
-/* Text input */
-.text-input {
-  width: 100%; padding: 12px 16px; border: 1px solid #ddd;
-  border-radius: 8px; font-size: 16px; margin: 12px 0;
-  outline: none;
+.verify-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: #e0e0e0;
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 16px 0;
 }
-.text-input:focus { border-color: #4f46e5; }
-
-/* Instructions */
-.instr { font-size: 15px; color: #555; margin-bottom: 16px; line-height: 1.5; }
-
-/* Checkbox dodge area */
-.dodge-zone {
-  position: relative; width: 100%; overflow: hidden;
-}
-
-/* Math */
-.math-expr { font-size: 32px; font-weight: bold; color: #1a1a1a; margin: 16px 0; }
-
-/* Final */
-.prank-reveal { font-size: 48px; margin-bottom: 16px; }
-.prank-title { font-size: 24px; font-weight: bold; color: #dc2626; margin-bottom: 12px; }
-.prank-text { color: #555; font-size: 15px; line-height: 1.6; }
-
-/* Loading bar for verify */
-.loading-bar {
-  width: 100%; height: 4px; background: #e0e0e0;
-  border-radius: 2px; margin: 16px 0; overflow: hidden;
-}
-.loading-bar-fill {
-  height: 100%; background: #4f46e5; width: 0%;
+.verify-progress-fill {
+  height: 100%;
+  background: #1565c0;
+  width: 0%;
   border-radius: 2px;
 }
+.verify-progress p {
+  font-size: 13px; color: #888; margin-top: 8px;
+}
+
+/* Distorted text CAPTCHA */
+.distorted-area {
+  position: relative;
+  width: 100%;
+  height: 90px;
+  margin: 12px 0;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background: #fafafa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.distorted-text {
+  font-size: 42px;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 6px;
+  user-select: none;
+  color: #333;
+}
+.distorted-text span {
+  display: inline-block;
+}
+
+.challenge-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+  font-family: 'Roboto', Arial, sans-serif;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.challenge-input:focus { border-color: #1565c0; box-shadow: 0 0 0 2px rgba(21,101,192,0.15); }
+.challenge-input::placeholder { color: #aaa; }
+
+/* Audio */
+.audio-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  margin: 12px 0;
+}
+.audio-play-btn {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 2px solid #888;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.audio-play-btn:hover { border-color: #1565c0; background: #e3f2fd; }
+.audio-wave {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 30px;
+}
+.audio-bar {
+  width: 4px;
+  background: #1565c0;
+  border-radius: 2px;
+  opacity: 0.3;
+}
+.audio-bar.active { opacity: 1; }
+@keyframes audioAnim {
+  0%, 100% { height: 8px; }
+  50% { height: 24px; }
+}
+.audio-bar:nth-child(1) { animation: audioAnim 0.5s ease infinite 0s; }
+.audio-bar:nth-child(2) { animation: audioAnim 0.5s ease infinite 0.1s; }
+.audio-bar:nth-child(3) { animation: audioAnim 0.5s ease infinite 0.2s; }
+.audio-bar:nth-child(4) { animation: audioAnim 0.5s ease infinite 0.05s; }
+.audio-bar:nth-child(5) { animation: audioAnim 0.5s ease infinite 0.15s; }
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #d32f2f;
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 4px;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  z-index: 2000;
+  animation: slideUp 0.3s ease;
+  font-family: 'Roboto', Arial, sans-serif;
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* Prank reveal */
+.prank-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  text-align: center;
+  padding: 40px;
+}
+.prank-gif {
+  font-size: 80px;
+  margin-bottom: 20px;
+  animation: bounce 1s ease infinite;
+}
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+.prank-title {
+  font-size: 36px;
+  font-weight: 700;
+  color: #d32f2f;
+  margin-bottom: 16px;
+}
+.prank-sub {
+  font-size: 18px;
+  color: #555;
+  line-height: 1.6;
+  max-width: 400px;
+  margin-bottom: 8px;
+}
+.prank-detail {
+  font-size: 14px;
+  color: #999;
+  line-height: 1.7;
+  max-width: 400px;
+  margin-bottom: 24px;
+}
+.prank-btn {
+  padding: 14px 40px;
+  background: #d32f2f;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: 'Roboto', Arial, sans-serif;
+}
+.prank-btn:hover { background: #b71c1c; }
+
+/* Audio waveform idle */
+.audio-wave.idle .audio-bar { animation: none; height: 4px; }
 </style>
 </head>
 <body>
-<div class="captcha-box" id="app">
-  <div id="stage-indicator" class="stage-indicator">
-    <div class="dot active" data-index="0"></div>
-    <div class="dot" data-index="1"></div>
-    <div class="dot" data-index="2"></div>
-    <div class="dot" data-index="3"></div>
-    <div class="dot" data-index="4"></div>
-    <div class="dot" data-index="5"></div>
-  </div>
 
-  <div id="stage-content"></div>
-</div>
+<div id="app"></div>
 
 <script>
-const STAGES = [
-  { id: 'checkbox', label: 'Checkbox' },
-  { id: 'grid', label: 'Grid' },
-  { id: 'slider', label: 'Slider' },
-  { id: 'audio', label: 'Audio' },
-  { id: 'math', label: 'Math' },
-  { id: 'final', label: 'Done' },
-];
-
 let currentStage = 0;
 let checkboxDodgeCount = 0;
-let gridSelected = [];
-let sliderPos = 0;
-let audioPlayed = false;
+let imageChallengeAttempts = 0;
+let textAttempts = 0;
+let audioAttempts = 0;
+
+const STAGES = [
+  { id: 'checkbox' },
+  { id: 'image' },
+  { id: 'text' },
+  { id: 'audio' },
+  { id: 'verify' },
+  { id: 'final' },
+];
 
 function render() {
-  const container = document.getElementById('stage-content');
-  const dots = document.querySelectorAll('.dot');
-  dots.forEach((d, i) => {
-    d.classList.toggle('active', i === currentStage);
-    d.classList.toggle('done', i < currentStage);
-  });
-
+  const app = document.getElementById('app');
   switch (STAGES[currentStage].id) {
-    case 'checkbox': renderCheckbox(container); break;
-    case 'grid': renderGrid(container); break;
-    case 'slider': renderSlider(container); break;
-    case 'audio': renderAudio(container); break;
-    case 'math': renderMath(container); break;
-    case 'final': renderFinal(container); break;
+    case 'checkbox': renderCheckbox(app); break;
+    case 'image': renderImageChallenge(app); break;
+    case 'text': renderTextCaptcha(app); break;
+    case 'audio': renderAudioCaptcha(app); break;
+    case 'verify': renderVerification(app); break;
+    case 'final': renderFinal(app); break;
   }
 }
 
-function renderCheckbox(container) {
-  container.innerHTML = `
-    <h2>Security Check</h2>
-    <p class="subtitle">Please verify you are human</p>
-    <div class="dodge-zone">
-      <div class="checkbox-wrapper" id="dodge-checkbox">
-        <div class="fake-checkbox" style="width:20px;height:20px;border:2px solid #999;border-radius:4px;background:white;flex-shrink:0;"></div>
-        <span class="checkbox-label">I'm not a robot</span>
+/* ==================== STAGE 1: reCAPTCHA Checkbox ==================== */
+function renderCheckbox(app) {
+  checkboxDodgeCount = 0;
+  app.innerHTML = `
+    <div class="rc-anchor rc-anchor-light rc-anchor-normal">
+      <div class="rc-anchor-content">
+        <div class="rc-checkbox" id="g-recaptcha" tabindex="0" role="checkbox" aria-checked="false"></div>
+        <label class="rc-label" id="g-recaptcha-label">I'm not a robot</label>
+        <div class="rc-logo">
+          <div class="rc-logo-img"></div>
+          <div class="rc-logo-text">Privacy - Terms</div>
+        </div>
+      </div>
+      <div class="rc-anchor-footer">
+        <div class="rc-footer-links">
+          <a href="#">Privacy</a>
+          <a href="#">Terms</a>
+        </div>
+        <span style="font-size:10px;color:#999;">reCAPTCHA</span>
       </div>
     </div>
-    <p style="font-size:12px;color:#999;margin-top:8px;">
-      ${checkboxDodgeCount > 0 ? `Almost... (${Math.min(checkboxDodgeCount, 10)}/10)` : ''}
-    </p>
+    <div class="recaptcha-badge">
+      Protected by reCAPTCHA
+      <span style="font-size:9px;color:#999;">Privacy - Terms</span>
+    </div>
   `;
 
-  const dodge = document.getElementById('dodge-checkbox');
-  let escaped = false;
+  const checkbox = document.getElementById('g-recaptcha');
+  const label = document.getElementById('g-recaptcha-label');
+  let hovering = false;
 
-  dodge.addEventListener('mouseenter', () => {
-    if (checkboxDodgeCount >= 10) return;
-    const box = dodge.parentElement.getBoundingClientRect();
-    const maxX = box.width - dodge.offsetWidth - 10;
-    const maxY = box.height - dodge.offsetHeight - 10;
-    const randX = Math.random() * maxX;
-    const randY = Math.random() * maxY;
-    dodge.style.position = 'absolute';
-    dodge.style.left = randX + 'px';
-    dodge.style.top = randY + 'px';
-    dodge.style.transition = 'left 0.08s, top 0.08s';
-    checkboxDodgeCount++;
-    escaped = false;
-    render();
-  });
-
-  dodge.addEventListener('click', () => {
-    if (checkboxDodgeCount >= 10 && !escaped) {
-      escaped = true;
-      const check = dodge.querySelector('.fake-checkbox');
-      check.style.background = '#4f46e5';
-      check.style.borderColor = '#4f46e5';
-      check.innerHTML = '✓';
-      check.style.color = 'white';
-      check.style.display = 'flex';
-      check.style.alignItems = 'center';
-      check.style.justifyContent = 'center';
-      check.style.fontSize = '14px';
-      dodge.style.cursor = 'default';
-      setTimeout(() => advance(), 800);
+  function dodge() {
+    if (checkboxDodgeCount >= 8) {
+      checkbox.classList.add('rc-checkbox-checked');
+      checkbox.setAttribute('aria-checked', 'true');
+      if (!checkbox._advanced) {
+        checkbox._advanced = true;
+        setTimeout(() => advance(), 900);
+      }
+      return;
     }
+
+    const viewportW = window.innerWidth;
+    const viewportH = window.innerHeight;
+    const box = checkbox.getBoundingClientRect();
+    const pad = 20;
+
+    let newX, newY;
+    let attempts = 0;
+    do {
+      newX = Math.random() * (viewportW - 50);
+      newY = Math.random() * (viewportH - 50);
+      attempts++;
+    } while (
+      Math.abs(newX - box.left) < 30 &&
+      Math.abs(newY - box.top) < 30 &&
+      attempts < 20
+    );
+
+    checkbox.style.position = 'fixed';
+    checkbox.style.left = newX + 'px';
+    checkbox.style.top = newY + 'px';
+    checkbox.style.zIndex = '10000';
+    checkbox.style.transition = 'left 0.1s, top 0.1s';
+    checkboxDodgeCount++;
+  }
+
+  const dodgeCheck = () => {
+    if (checkboxDodgeCount < 8) dodge();
+  };
+
+  checkbox.addEventListener('mouseenter', dodgeCheck);
+  label.addEventListener('mouseenter', dodgeCheck);
+
+  checkbox.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dodge();
+  });
+  label.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dodge();
   });
 }
 
-function renderGrid(container) {
-  const images = ['🚗', '🚌', '🚲', '🚕', '🚙', '🚐', '🏍️', '🛵', '🚚', '🚛', '🚜', '🏎️', '🚓', '🚑', '🚒', '🛴'];
-  const target = ['bus', 'traffic light', 'crosswalk', 'fire hydrant'];
+/* ==================== STAGE 2: reCAPTCHA Image Challenge ==================== */
+function renderImageChallenge(app) {
+  imageChallengeAttempts = 0;
+  const prompts = [
+    'crosswalk', 'traffic light', 'bus', 'fire hydrant',
+    'bicycle', 'motorcycle', 'parking meter', 'stop sign',
+  ];
+  const prompt = prompts[Math.floor(Math.random() * prompts.length)];
+  const cellIcons = [
+    ['🚗', '🚙', '🚕', '🚌', '🚐', '🚑', '🚒', '🚓', '🚲'],
+    ['🏠', '🏢', '🏪', '🏦', '🏨', '🏥', '🏫', '🏣', '🏤'],
+    ['🌳', '🌲', '🌴', '🌵', '🌻', '🌸', '🌺', '🍀', '🌿'],
+    ['🛑', '🚥', '🚸', '⛽', '🚏', '🚦', '🚧', '🏗️', '🏭'],
+  ];
+  const icons = cellIcons[Math.floor(Math.random() * cellIcons.length)];
 
-  gridSelected = [];
-  container.innerHTML = `
-    <h2>Select all squares with <strong>${target[currentStage % target.length]}s</strong></h2>
-    <p class="subtitle">If there are none, click Verify anyway 😊</p>
-    <div class="grid" id="grid">
-      ${images.map((img, i) => `<div class="grid-cell" data-index="${i}">${img}</div>`).join('')}
+  app.innerHTML = `
+    <div class="challenge-overlay">
+      <div class="challenge-box">
+        <div class="challenge-header">
+          <div class="challenge-header-icon">re</div>
+          <div class="challenge-header-text">
+            <h2>Security Check</h2>
+            <p>Please complete the security check to continue</p>
+          </div>
+        </div>
+        <div class="challenge-body">
+          <div class="challenge-prompt">
+            Select all squares with <strong>${prompt}s</strong>
+            <span style="font-size:12px;color:#888;font-weight:400;display:block;margin-top:4px;">
+              Click each image that contains the object. Click Verify when done.
+            </span>
+          </div>
+          <div class="challenge-grid" id="image-grid">
+            ${icons.map((icon, i) => `
+              <div class="challenge-grid-cell" data-index="${i}">${icon}</div>
+            `).join('')}
+          </div>
+          <div class="challenge-actions">
+            <button class="challenge-btn challenge-btn-skip" id="reload-btn">⟳ Reload</button>
+            <button class="challenge-btn challenge-btn-verify" id="verify-btn" disabled>Verify</button>
+          </div>
+        </div>
+        <div class="challenge-footer">
+          <a href="#">Privacy</a>
+          <a href="#">Terms</a>
+          <div class="challenge-footer-icons">
+            <span title="Get audio challenge">🔊</span>
+            <span title="Get help">❓</span>
+            <span title="Reload">⟳</span>
+          </div>
+        </div>
+      </div>
     </div>
-    <button class="btn" id="grid-verify">Verify</button>
   `;
 
-  document.querySelectorAll('.grid-cell').forEach(el => {
-    el.addEventListener('click', () => {
-      el.classList.toggle('selected');
+  let selected = new Set();
+
+  document.querySelectorAll('.challenge-grid-cell').forEach(cell => {
+    cell.addEventListener('click', () => {
+      cell.classList.toggle('selected');
+      if (cell.classList.contains('selected')) selected.add(cell.dataset.index);
+      else selected.delete(cell.dataset.index);
+      document.getElementById('verify-btn').disabled = selected.size === 0;
     });
   });
 
-  document.getElementById('grid-verify').addEventListener('click', () => {
-    let tries = parseInt(sessionStorage.getItem('gridTries') || '0');
-    tries++;
-    sessionStorage.setItem('gridTries', String(tries));
+  document.getElementById('verify-btn').addEventListener('click', () => {
+    sessionStorage.setItem('imgAttempts', String(parseInt(sessionStorage.getItem('imgAttempts') || '0') + 1));
+    const attempts = parseInt(sessionStorage.getItem('imgAttempts') || '0');
 
-    if (tries >= 3) {
-      showFakeLoad(container, () => {
-        sessionStorage.removeItem('gridTries');
-        advance();
-      });
-    } else {
-      const msgs = [
-        "Hmm, we couldn't detect any buses. Try again.",
-        "You missed some. Please try harder.",
-        "Are you sure you selected all the traffic lights?",
-      ];
-      showToast(msgs[tries - 1] || "Incorrect. Try again.");
+    if (attempts >= 4) {
+      sessionStorage.removeItem('imgAttempts');
+      showLoadingThenAdvance(app);
+      return;
     }
+
+    const msgs = [
+      'Please also click the area that contains the object.',
+      'You missed some. Please try again.',
+      'Hmm, let\'s try a different image set.',
+      'Almost there! One more try with new images.',
+    ];
+    showToast(msgs[Math.min(attempts - 1, msgs.length - 1)]);
+
+    // Re-render with new prompt after short delay
+    setTimeout(() => renderImageChallenge(app), 800);
+  });
+
+  document.getElementById('reload-btn').addEventListener('click', () => {
+    renderImageChallenge(app);
   });
 }
 
-function renderSlider(container) {
-  sliderPos = 0;
-  container.innerHTML = `
-    <h2>Slide to verify</h2>
-    <p class="subtitle">Drag the slider to the end to confirm</p>
-    <div class="slider-track" id="slider-track">
-      <div class="slider-fill" id="slider-fill"></div>
-      <div class="slider-thumb" id="slider-thumb"></div>
+/* ==================== STAGE 3: Distorted Text CAPTCHA ==================== */
+function renderTextCaptcha(app) {
+  textAttempts = 0;
+
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let text = '';
+  for (let i = 0; i < 6; i++) text += chars[Math.floor(Math.random() * chars.length)];
+
+  sessionStorage.setItem('captchaText', text);
+
+  app.innerHTML = `
+    <div class="challenge-overlay">
+      <div class="challenge-box">
+        <div class="challenge-header">
+          <div class="challenge-header-icon">re</div>
+          <div class="challenge-header-text">
+            <h2>Type the text</h2>
+            <p>Enter the characters you see below</p>
+          </div>
+        </div>
+        <div class="challenge-body">
+          <div class="distorted-area" id="distorted-area">
+            <div class="distorted-text" id="distorted-text">
+              ${text.split('').map((ch, i) => `<span style="transform:rotate(${(Math.random() - 0.5) * 40}deg) translateY(${(Math.random() - 0.5) * 8}px);">${ch}</span>`).join('')}
+            </div>
+          </div>
+          <input class="challenge-input" id="captcha-input" type="text" placeholder="Type the text" autocomplete="off" autocapitalize="off" spellcheck="false">
+          <div class="challenge-actions" style="padding-top:12px;">
+            <button class="challenge-btn challenge-btn-skip" id="reload-text">⟳ Reload</button>
+            <button class="challenge-btn challenge-btn-verify" id="verify-text">Verify</button>
+          </div>
+        </div>
+        <div class="challenge-footer">
+          <a href="#">Privacy</a>
+          <a href="#">Terms</a>
+          <div class="challenge-footer-icons">
+            <span title="Get audio challenge">🔊</span>
+            <span title="Refresh">⟳</span>
+          </div>
+        </div>
+      </div>
     </div>
-    <p id="slider-hint" style="font-size:12px;color:#999;margin-top:8px;">Drag the slider to the right</p>
   `;
 
-  const track = document.getElementById('slider-track');
-  const fill = document.getElementById('slider-fill');
-  const thumb = document.getElementById('slider-thumb');
-  const hint = document.getElementById('slider-hint');
-  let dragging = false;
-  let resetTimeout = null;
-  let lastPct = 0;
+  document.getElementById('captcha-input').focus();
 
-  const onMove = (clientX) => {
-    const rect = track.getBoundingClientRect();
-    let pct = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
-    sliderPos = pct;
-    fill.style.width = pct + '%';
-    thumb.style.left = pct + '%';
+  document.getElementById('verify-text').addEventListener('click', () => {
+    const input = document.getElementById('captcha-input').value.trim();
+    const correct = sessionStorage.getItem('captchaText');
 
-    // If they get close to the end, push back!
-    if (pct > 85 && pct < 98) {
-      sliderPos = 65 + Math.random() * 10;
-      fill.style.width = sliderPos + '%';
-      thumb.style.left = sliderPos + '%';
-      hint.textContent = "Almost! Keep going...";
-    } else if (pct >= 98) {
-      // They actually reached the end somehow
-      hint.textContent = "Verifying...";
-      showFakeLoad(container, () => {
-        hint.textContent = "One more check...";
-        // Reset and make them do it again
-        setTimeout(() => {
-          sliderPos = 0;
-          fill.style.width = '0%';
-          thumb.style.left = '0%';
-          hint.textContent = "Security re-check required! Slide again.";
-        }, 500);
-        // After 3 reaches, actually advance
-        let reaches = parseInt(sessionStorage.getItem('sliderReaches') || '0');
-        reaches++;
-        sessionStorage.setItem('sliderReaches', String(reaches));
-        if (reaches >= 3) {
-          sessionStorage.removeItem('sliderReaches');
-          advance();
-        }
-      });
-    } else {
-      hint.textContent = `Dragging... ${Math.round(sliderPos)}%`;
+    sessionStorage.setItem('textAttempts', String(parseInt(sessionStorage.getItem('textAttempts') || '0') + 1));
+    const attempts = parseInt(sessionStorage.getItem('textAttempts') || '0');
+
+    if (attempts >= 4) {
+      sessionStorage.removeItem('textAttempts');
+      sessionStorage.removeItem('captchaText');
+      showLoadingThenAdvance(app);
+      return;
     }
-  };
 
-  thumb.addEventListener('mousedown', (e) => { dragging = true; e.preventDefault(); });
-  document.addEventListener('mousemove', (e) => { if (dragging) onMove(e.clientX); });
-  document.addEventListener('mouseup', () => { dragging = false; });
-
-  // Touch support
-  thumb.addEventListener('touchstart', (e) => { dragging = true; e.preventDefault(); });
-  document.addEventListener('touchmove', (e) => {
-    if (dragging) onMove(e.touches[0].clientX);
+    if (input.toLowerCase() === correct.toLowerCase()) {
+      showToast('Checking...');
+      setTimeout(() => {
+        // Regenerate and make them do it again
+        const newChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let newText = '';
+        for (let i = 0; i < 6; i++) newText += newChars[Math.floor(Math.random() * newChars.length)];
+        sessionStorage.setItem('captchaText', newText);
+        document.getElementById('distorted-text').innerHTML = newText.split('').map((ch, i) =>
+          `<span style="transform:rotate(${(Math.random() - 0.5) * 50}deg) translateY(${(Math.random() - 0.5) * 12}px);">${ch}</span>`
+        ).join('');
+        document.getElementById('captcha-input').value = '';
+        document.getElementById('captcha-input').placeholder = 'Good! One more time...';
+        showToast('Correct! Now try another.');
+      }, 600);
+    } else {
+      showToast('Incorrect. Try again.');
+      document.getElementById('captcha-input').value = '';
+    }
   });
-  document.addEventListener('touchend', () => { dragging = false; });
+
+  document.getElementById('reload-text').addEventListener('click', () => {
+    renderTextCaptcha(app);
+  });
+
+  document.getElementById('captcha-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('verify-text').click();
+  });
 }
 
-function renderAudio(container) {
-  audioPlayed = false;
-  container.innerHTML = `
-    <h2>Audio Verification</h2>
-    <p class="subtitle">Listen and type what you hear</p>
-    <button class="audio-play" id="audio-play-btn">🔊</button>
-    <p style="font-size:13px;color:#999;">Click the speaker to play audio</p>
-    <input class="text-input hidden" id="audio-input" placeholder="Type what you heard...">
-    <button class="btn hidden" id="audio-verify">Verify</button>
+/* ==================== STAGE 4: Audio CAPTCHA ==================== */
+function renderAudioCaptcha(app) {
+  audioAttempts = 0;
+
+  // Generate a numeric code that the user will "hear"
+  const digits = Math.floor(Math.random() * 9000 + 1000).toString();
+  sessionStorage.setItem('audioCode', digits);
+
+  app.innerHTML = `
+    <div class="challenge-overlay">
+      <div class="challenge-box">
+        <div class="challenge-header">
+          <div class="challenge-header-icon">🔊</div>
+          <div class="challenge-header-text">
+            <h2>Audio Challenge</h2>
+            <p>Click play, then type what you hear</p>
+          </div>
+        </div>
+        <div class="challenge-body">
+          <div class="audio-control">
+            <button class="audio-play-btn" id="play-audio">▶</button>
+            <div class="audio-wave idle" id="audio-wave">
+              ${Array.from({length: 20}, (_, i) => `<div class="audio-bar" style="height:${Math.random() * 16 + 4}px;"></div>`).join('')}
+            </div>
+          </div>
+          <p style="font-size:12px;color:#888;margin:4px 0 12px;">
+            Numbers 0-9, spoken in sequence. Type the digits you hear.
+          </p>
+          <input class="challenge-input" id="audio-input" type="text" placeholder="Enter the numbers" autocomplete="off" disabled>
+          <div class="challenge-actions" style="padding-top:12px;">
+            <button class="challenge-btn challenge-btn-skip" id="reload-audio">⟳ Reload</button>
+            <button class="challenge-btn challenge-btn-verify" id="verify-audio" disabled>Verify</button>
+          </div>
+        </div>
+        <div class="challenge-footer">
+          <a href="#">Privacy</a>
+          <a href="#">Terms</a>
+          <div class="challenge-footer-icons">
+            <span title="Play again">🔊</span>
+            <span title="Get text challenge">Aa</span>
+          </div>
+        </div>
+      </div>
+    </div>
   `;
 
-  const playBtn = document.getElementById('audio-play-btn');
+  const playBtn = document.getElementById('play-audio');
+  const wave = document.getElementById('audio-wave');
   const input = document.getElementById('audio-input');
-  const verify = document.getElementById('audio-verify');
-
-  const phrases = [
-    { text: "Mango chicken trombone", audio: "..." },
-    { text: "Purple giraffe elevator", audio: "..." },
-  ];
-  const pick = phrases[Math.floor(Math.random() * phrases.length)];
-  sessionStorage.setItem('audioAnswer', pick.text.toLowerCase());
+  const verify = document.getElementById('verify-audio');
+  let hasPlayed = false;
 
   playBtn.addEventListener('click', () => {
-    // Play a beep sequence that's impossible to understand
+    if (hasPlayed) {
+      input.disabled = false;
+      input.focus();
+      return;
+    }
+
+    wave.classList.remove('idle');
+    playBtn.textContent = '...';
+    playBtn.disabled = true;
+
+    // Play garbled beep sequence (impossible to discern)
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const playNote = (freq, start, dur) => {
+    const playNoise = (freq, start, dur, type) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.frequency.value = freq;
-      osc.type = 'sawtooth';
-      gain.gain.setValueAtTime(0.3, start);
+      osc.type = type || 'sawtooth';
+      gain.gain.setValueAtTime(0.2, start);
       gain.gain.exponentialRampToValueAtTime(0.01, start + dur);
       osc.start(start);
       osc.stop(start + dur);
     };
 
-    // Play garbled nonsense audio
-    playBtn.textContent = '🔊...';
-    playBtn.disabled = true;
-    setTimeout(() => { playNote(220, 0, 0.3); }, 100);
-    setTimeout(() => { playNote(880, 0.3, 0.1); }, 400);
-    setTimeout(() => { playNote(440, 0.5, 0.3); }, 600);
-    setTimeout(() => { playNote(660, 0.8, 0.4); }, 900);
-    setTimeout(() => { playNote(330, 1.2, 0.3); }, 1300);
+    // Play overlapping garbled noise
+    const noteCount = 12;
+    for (let i = 0; i < noteCount; i++) {
+      const t = i * 0.15 + Math.random() * 0.05;
+      const freq = 200 + Math.random() * 1200;
+      const dur = 0.06 + Math.random() * 0.12;
+      const type = ['sawtooth', 'square', 'sine'][Math.floor(Math.random() * 3)];
+      setTimeout(() => playNoise(freq, 0, dur, type), t * 1000);
+    }
+
     setTimeout(() => {
-      playBtn.textContent = '🔊';
+      playBtn.textContent = '▶';
       playBtn.disabled = false;
-      audioPlayed = true;
-      input.classList.remove('hidden');
-      verify.classList.remove('hidden');
-    }, 1800);
+      wave.classList.add('idle');
+      hasPlayed = true;
+      input.disabled = false;
+      input.focus();
+      input.placeholder = 'e.g. 4829';
+    }, 2200);
   });
 
-  verify.addEventListener('click', () => {
-    const answer = sessionStorage.getItem('audioAnswer');
-    const userAnswer = input.value.toLowerCase().trim();
+  input.addEventListener('input', () => {
+    verify.disabled = input.value.trim().length < 4;
+  });
 
-    if (userAnswer === answer) {
-      // They somehow got it right - advance anyway after messing with them
-      showFakeLoad(container, () => {
-        showToast("Correct... but let's double-check.");
-        setTimeout(() => {
-          input.value = '';
-          const pick2 = phrases[Math.floor(Math.random() * phrases.length)];
-          sessionStorage.setItem('audioAnswer', pick2.text.toLowerCase());
-        }, 500);
-        let corrects = parseInt(sessionStorage.getItem('audioCorrects') || '0');
-        corrects++;
-        sessionStorage.setItem('audioCorrects', String(corrects));
-        if (corrects >= 2) {
-          sessionStorage.removeItem('audioCorrects');
-          sessionStorage.removeItem('audioAnswer');
-          advance();
-        }
-      });
-    } else {
-      showToast("Incorrect. Listen again carefully.");
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !verify.disabled) verify.click();
+  });
+
+  document.getElementById('verify-audio').addEventListener('click', () => {
+    const answer = sessionStorage.getItem('audioCode');
+    const userInput = input.value.trim();
+
+    sessionStorage.setItem('audioAttempts', String(parseInt(sessionStorage.getItem('audioAttempts') || '0') + 1));
+    const attempts = parseInt(sessionStorage.getItem('audioAttempts') || '0');
+
+    if (attempts >= 4) {
+      sessionStorage.removeItem('audioAttempts');
+      sessionStorage.removeItem('audioCode');
+      showLoadingThenAdvance(app);
+      return;
     }
+
+    if (userInput === answer) {
+      const newCode = Math.floor(Math.random() * 9000 + 1000).toString();
+      sessionStorage.setItem('audioCode', newCode);
+      input.value = '';
+      input.placeholder = 'Correct! One more check...';
+      showToast('Correct. Verifying additional sample...');
+      hasPlayed = false;
+      verify.disabled = true;
+      input.disabled = true;
+    } else {
+      showToast('Incorrect. Play again and try harder.');
+    }
+  });
+
+  document.getElementById('reload-audio').addEventListener('click', () => {
+    renderAudioCaptcha(app);
   });
 }
 
-function renderMath(container) {
-  container.innerHTML = `
-    <h2>Math Verification</h2>
-    <p class="subtitle">Solve this simple math problem</p>
-    <div class="math-expr" id="math-expr"></div>
-    <input class="text-input" id="math-input" type="number" placeholder="Enter your answer" step="any">
-    <button class="btn" id="math-verify">Submit</button>
-  `;
-
-  const generate = () => {
-    const a = Math.floor(Math.random() * 100);
-    const b = Math.floor(Math.random() * 10);
-    const ops = ['+', '-', '×', '÷'];
-    const op = ops[Math.floor(Math.random() * ops.length)];
-    let expr, answer;
-    switch (op) {
-      case '+': expr = `${a} + ${b}`; answer = a + b; break;
-      case '-': expr = `${a} - ${b}`; answer = a - b; break;
-      case '×': expr = `${a} × ${b}`; answer = a * b; break;
-      case '÷':
-        const divA = a > 0 ? a : 1;
-        const divB = b > 0 ? b : 1;
-        expr = `${divA * divB} ÷ ${divB}`; answer = divA; break;
-    }
-    return { expr, answer };
-  };
-
-  let current = generate();
-  document.getElementById('math-expr').textContent = current.expr;
-
-  document.getElementById('math-verify').addEventListener('click', () => {
-    const input = document.getElementById('math-input');
-    const val = parseFloat(input.value);
-    const correct = Math.abs(val - current.answer) < 0.01;
-
-    if (correct) {
-      showFakeLoad(container, () => {
-        // Generate a new harder problem
-        current = {
-          expr: `∫(2x³ + 3x² - 5x + 1) dx from 0 to ${Math.floor(Math.random() * 10) + 1}`,
-          answer: Math.random() * 10000,
-        };
-        document.getElementById('math-expr').textContent = current.expr;
-        input.value = '';
-        input.placeholder = "🚩 Enter the definite integral";
-        showToast("Now try this one.");
-      });
-      let solved = parseInt(sessionStorage.getItem('mathSolved') || '0');
-      solved++;
-      sessionStorage.setItem('mathSolved', String(solved));
-      if (solved >= 3) {
-        sessionStorage.removeItem('mathSolved');
-        advance();
-      }
-    } else {
-      showToast("Wrong answer. Try again.");
-    }
-  });
-}
-
-function renderFinal(container) {
-  container.innerHTML = `
-    <div class="prank-reveal">🎉</div>
-    <div class="prank-title">YOU'VE BEEN PRANKED!</div>
-    <div class="prank-text">
-      These CAPTCHAs were impossible on purpose.<br>
-      There were no buses, the checkbox runs away,<br>
-      the slider pushes back, and that math problem<br>
-      was never solvable.
+/* ==================== STAGE 5: reCAPTCHA v3 "Verification" (infinite spinner) ==================== */
+function renderVerification(app) {
+  app.innerHTML = `
+    <div class="challenge-overlay">
+      <div class="challenge-box">
+        <div class="challenge-body">
+          <div class="verify-spinner">
+            <div class="verify-spinner-ring"></div>
+            <h3>Verifying you are human</h3>
+            <p id="verify-status">Checking browser behavior signals...</p>
+          </div>
+          <div class="verify-progress" id="verify-progress" style="display:none;">
+            <div class="verify-progress-bar">
+              <div class="verify-progress-fill" id="verify-fill"></div>
+            </div>
+            <p id="verify-progress-text">Analyzing mouse movements...</p>
+          </div>
+        </div>
+        <div class="challenge-footer" style="justify-content:center;">
+          <span style="font-size:11px;color:#999;">reCAPTCHA v3 - Protected by reCAPTCHA</span>
+        </div>
+      </div>
     </div>
-    <br>
-    <button class="btn" onclick="resetAll()">Try again? 😈</button>
   `;
-}
 
-function showFakeLoad(container, callback) {
-  const bar = document.createElement('div');
-  bar.className = 'loading-bar';
-  bar.innerHTML = '<div class="loading-bar-fill" id="fake-load-fill"></div>';
-  container.appendChild(bar);
+  const statuses = [
+    'Analyzing mouse movements...',
+    'Checking browser fingerprint...',
+    'Evaluating scrolling behavior...',
+    'Validating cookies...',
+    'Cross-referencing IP reputation...',
+    'Running behavioral analysis...',
+    'Verification in progress...',
+    'Almost done...',
+    'Additional checks required...',
+  ];
 
-  const fill = document.getElementById('fake-load-fill');
-  let width = 0;
+  const progress = document.getElementById('verify-progress');
+  const fill = document.getElementById('verify-fill');
+  const statusEl = document.getElementById('verify-status');
+  const progressText = document.getElementById('verify-progress-text');
+
+  let idx = 0;
   const interval = setInterval(() => {
-    width += Math.random() * 15 + 2;
-    if (width >= 100) {
-      width = 100;
+    if (idx < statuses.length) {
+      statusEl.textContent = statuses[idx];
+      idx++;
+    } else {
       clearInterval(interval);
-      fill.style.width = '100%';
-      setTimeout(() => {
-        bar.remove();
-        callback();
+      // Show progress bar after statuses
+      progress.style.display = 'block';
+      let width = 0;
+      const barInterval = setInterval(() => {
+        width += Math.random() * 8 + 1;
+        if (width >= 99) {
+          fill.style.width = '99%';
+          progressText.textContent = 'Verification could not be completed. Trying again...';
+          clearInterval(barInterval);
+          setTimeout(() => {
+            fill.style.width = '0%';
+            progress.style.display = 'none';
+            idx = 0;
+            // Start over with spinner
+            const newInterval = setInterval(() => {
+              if (idx < statuses.length) {
+                statusEl.textContent = statuses[idx];
+                idx++;
+              } else {
+                clearInterval(newInterval);
+                progress.style.display = 'block';
+                let w = 0;
+                const bi2 = setInterval(() => {
+                  w += Math.random() * 8 + 1;
+                  if (w >= 99) {
+                    fill.style.width = '99%';
+                    progressText.textContent = 'Verification could not be completed. Please try again.';
+                    clearInterval(bi2);
+                    // After 3 cycles, advance
+                    let cycles = parseInt(sessionStorage.getItem('verifyCycles') || '0');
+                    cycles++;
+                    sessionStorage.setItem('verifyCycles', String(cycles));
+                    if (cycles >= 3) {
+                      sessionStorage.removeItem('verifyCycles');
+                      advance();
+                    } else {
+                      setTimeout(() => {
+                        fill.style.width = '0%';
+                        progress.style.display = 'none';
+                        idx = 0;
+                        renderVerification(app);
+                      }, 2000);
+                    }
+                  }
+                  fill.style.width = Math.min(w, 99) + '%';
+                }, 300);
+              }
+            }, 1500);
+          }, 2000);
+        }
+        fill.style.width = Math.min(width, 99) + '%';
       }, 300);
     }
-    fill.style.width = Math.min(width, 99) + '%';
-  }, 200);
+  }, 1800);
+}
+
+/* ==================== STAGE 6: PRANK REVEAL ==================== */
+function renderFinal(app) {
+  app.innerHTML = `
+    <div class="prank-overlay">
+      <div class="prank-gif">😂</div>
+      <div class="prank-title">You've been pranked!</div>
+      <div class="prank-sub">
+        None of those CAPTCHAs were ever solvable.
+      </div>
+      <div class="prank-detail">
+        The checkbox ran away from your cursor. The image grid had no crosswalks.<br>
+        The text CAPTCHA regenerated every time. The audio was just noise.<br>
+        The spinner looped forever. Welcome to the internet.
+      </div>
+      <button class="prank-btn" onclick="resetAll()">Prank someone else ▶</button>
+    </div>
+  `;
+}
+
+/* ==================== Helpers ==================== */
+function showLoadingThenAdvance(app) {
+  const overlay = document.querySelector('.challenge-overlay');
+  if (!overlay) return;
+  overlay.innerHTML = `
+    <div class="challenge-box">
+      <div class="challenge-body">
+        <div class="verify-progress">
+          <p style="font-size:15px;color:#333;margin-bottom:12px;">Verifying...</p>
+          <div class="verify-progress-bar">
+            <div class="verify-progress-fill" id="advance-fill"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  const fill = document.getElementById('advance-fill');
+  let w = 0;
+  const interval = setInterval(() => {
+    w += Math.random() * 12 + 3;
+    if (w >= 100) {
+      w = 100;
+      clearInterval(interval);
+      fill.style.width = '100%';
+      setTimeout(() => advance(), 400);
+    }
+    fill.style.width = Math.min(w, 100) + '%';
+  }, 150);
 }
 
 function showToast(msg) {
   const existing = document.querySelector('.toast');
   if (existing) existing.remove();
-
   const toast = document.createElement('div');
   toast.className = 'toast';
   toast.textContent = msg;
-  Object.assign(toast.style, {
-    position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)',
-    background: '#dc2626', color: 'white', padding: '12px 24px', borderRadius: '8px',
-    fontSize: '14px', boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-    zIndex: '1000', transition: 'opacity 0.3s',
-  });
   document.body.appendChild(toast);
-  setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 2500);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.3s';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
 }
 
 function advance() {
@@ -558,9 +1132,9 @@ function advance() {
 function resetAll() {
   currentStage = 0;
   checkboxDodgeCount = 0;
-  gridSelected = [];
-  sliderPos = 0;
-  audioPlayed = false;
+  imageChallengeAttempts = 0;
+  textAttempts = 0;
+  audioAttempts = 0;
   sessionStorage.clear();
   render();
 }
